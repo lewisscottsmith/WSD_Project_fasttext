@@ -1,0 +1,6 @@
+.idea
+*.zip
+TMP-OUPUT.json
+old/
+pretrained word vectors/
+sample excel results output/
