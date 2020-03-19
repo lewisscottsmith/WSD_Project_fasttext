@@ -4,8 +4,8 @@ from sklearn import metrics
 
 from time import sleep
 
-def get_model(training_data):
-    m = ft.train_supervised(training_data, pretrainedVectors='wiki-news-300d-1M.vec', dim=300, epoch=25, lr=1.0,) ######
+def get_model(training_data, pv):
+    m = ft.train_supervised(training_data, pretrainedVectors=pv, dim=300, epoch=25, lr=1.0,) ######
     sleep(1)
     return m
 
