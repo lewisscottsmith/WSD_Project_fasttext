@@ -59,6 +59,7 @@ row_count = 2
 ws_results['A1'] = 'Word'
 ws_results['B1'] = 'Accuracy'
 ws_results['C1'] = 'F1-score (macro)'
+ws_results['D1'] = 'Confidence'
 for word in words:
     start_time_model_training = time.time()
     model = ft_runner.get_model('datasets/'+word+'-training-data.txt') ##########
@@ -68,6 +69,7 @@ for word in words:
     ws_results['A' + str(row_count)] = word
     ws_results['B' + str(row_count)] = r['percentage_correct']
     ws_results['C' + str(row_count)] = r['f1score (macro)']
+    ws_results['D' + str(row_count)] = r['avg confidence']
     row_count += 1
 
     ws_word = wb.create_sheet(title=word)
@@ -83,14 +85,20 @@ for word in words:
     ws_word['B5'] = r['f1score (macro)']
     ws_word['A6'] = 'f1-score (weighted)'
     ws_word['B6'] = r['f1score (weighted)']
-    ws_word['A7'] = 'total'
-    ws_word['B7'] = r['total']
-    ws_word['A8'] = 'Avg num words (test data)'
-    ws_word['B8'] = r['avg num words (test data)']
-    ws_word['A9'] = 'Avg num words (training data)'
-    ws_word['B9'] = r['avg num words (training data)']
-    ws_word['A10'] = 'training time'
-    ws_word['B10'] = training_time
+    ws_word['A7'] = 'avg confidence'
+    ws_word['B7'] = r['avg confidence']
+    ws_word['A8'] = 'avg correct confidence'
+    ws_word['B8'] = r['avg correct confidence']
+    ws_word['A9'] = 'avg incorrect confidence'
+    ws_word['B9'] = r['avg incorrect confidence']
+    ws_word['A10'] = 'total'
+    ws_word['B10'] = r['total']
+    ws_word['A11'] = 'Avg num words (test data)'
+    ws_word['B11'] = r['avg num words (test data)']
+    ws_word['A12'] = 'Avg num words (training data)'
+    ws_word['B12'] = r['avg num words (training data)']
+    ws_word['A13'] = 'training time'
+    ws_word['B13'] = training_time
 
     ws_word['E2'] = 'Label Data'
     ws_word.merge_cells('E2:F2')
@@ -109,6 +117,9 @@ for word in words:
         label_row_count += 1
         ws_word['E' + str(label_row_count)] = 'total'
         ws_word['F' + str(label_row_count)] = r['label_data'][label]['total']
+        label_row_count += 1
+        ws_word['E' + str(label_row_count)] = 'confidence'
+        ws_word['F' + str(label_row_count)] = r['label_data'][label]['confidence']
         label_row_count += 1
 
 

@@ -4,17 +4,20 @@ from sklearn import metrics
 
 from time import sleep
 
+
 def get_model(training_data):
-    m = ft.train_supervised(training_data, pretrainedVectors='wiki-news-300d-1M.vec', dim=300, epoch=25, lr=1.0,) ######
+    m = ft.train_supervised(
+        training_data, pretrainedVectors='wiki-news-300d-1M.vec', dim=300,
+        epoch=50, lr=1.0)  # , pretrainedVectors='wiki-news-300d-1M.vec', dim=300, epoch=25, ,) ######
     sleep(1)
     return m
 
 
 def predict(model, sentence, k=1):
     out = model.predict(sentence, k=k)
-    if k == 1:
+    if k != 1:
         out = out[0]
-    return out[0]
+    return out[0][0], out[1][0]  # Returns 2 values, the predicted label, and the confidence of the label
 
 
 def test_model(model, test_data_path, output_path=None, training_data_path=None):
@@ -29,9 +32,9 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
         label_data[l] = {
             "num_correct": 0,
             "num_incorrect": 0,
-            "total": 0
+            "total": 0,
+            "conf-vals": []
         }
-
 
     # Getting stats from the training data that was used (Not needed to run the actual tests)
     avg_training_data_num_words = 'n/a'
@@ -53,8 +56,6 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
 
         avg_training_data_num_words = train_data_num_words_sum / train_data_num_words_count
 
-
-
     with open(test_data_path) as f:
         f_data = f.read()
         test_data_from_file = f_data.split("\n")
@@ -62,9 +63,8 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
     test_data_num_words_count = 0
     test_data_num_words_sum = 0
 
-
-    f1score_correct_labels = []#################
-    f1score_predicted_labels = []#########
+    f1score_correct_labels = []  #################
+    f1score_predicted_labels = []  #########
 
     for data in test_data_from_file:
         #         For each line in the test data
@@ -77,21 +77,22 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
         test_data_num_words_count += 1
         test_data_num_words_sum += num_words
         labels = model.labels
-        f1score_correct_labels.append(labels.index(label)) ########
-        f1score_predicted_labels.append(labels.index(prediction))#########
-        if prediction == label:
+        f1score_correct_labels.append(labels.index(label))  ########
+        f1score_predicted_labels.append(labels.index(prediction[0]))  #########
+
+        if prediction[0] == label:
             #             Correct label found
             count += 1
             num_correct += 1
             correct.append({
                 "data": sentence,
                 "label": label,
-                "predicted label": prediction,
+                "predicted label": prediction[0],
+                "confidence": prediction[1],
                 "num words": num_words
             })
             label_data[label]['num_correct'] += 1
             label_data[label]['total'] += 1
-
         else:
             #         prediction is wrong
             count += 1
@@ -99,20 +100,39 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
             incorrect.append({
                 "data": sentence,
                 "label": label,
-                "predicted label": prediction,
+                "predicted label": prediction[0],
+                "confidence": prediction[1],
                 "num words": num_words
             })
             label_data[label]['num_incorrect'] += 1
             label_data[label]['total'] += 1
 
+        label_data[prediction[0]]['conf-vals'].append(prediction[1])
+
+    correct_avg_confidence = get_avg_confidence(correct)
+    incorrect_avg_confidence = get_avg_confidence(incorrect)
+    avg_confidence = get_avg_confidence(correct + incorrect)
+    for label in label_data:
+        conf_vals = label_data[label]['conf-vals']
+        if len(conf_vals) != 0:
+            label_data[label]['confidence'] = sum(conf_vals) / len(conf_vals)
+        else:
+            label_data[label]['confidence'] = 'n/a'
+        del label_data[label]['conf-vals']
+
     results = {
         "num_correct": num_correct,
         "num_incorrect": num_incorrect,
         "percentage_correct": "{}%".format((num_correct / count) * 100),
-        "f1score (macro)": str(metrics.f1_score(y_true=f1score_correct_labels, y_pred=f1score_predicted_labels, average='macro')),################
+        "f1score (macro)": str(
+            metrics.f1_score(y_true=f1score_correct_labels, y_pred=f1score_predicted_labels, average='macro')),
+    ################
         "f1score (weighted)": str(
             metrics.f1_score(y_true=f1score_correct_labels, y_pred=f1score_predicted_labels, average='weighted')),
-    ################
+        ################
+        'avg confidence': avg_confidence,
+        'avg correct confidence': correct_avg_confidence,
+        'avg incorrect confidence': incorrect_avg_confidence,
         "total": count,
         "result_data": {
             "correct": correct,
@@ -130,13 +150,19 @@ def test_model(model, test_data_path, output_path=None, training_data_path=None)
     return results
 
 
+def get_avg_confidence(result_dict):
+    confidence_list = []
+    for item in result_dict:
+        confidence_list.append(item['confidence'])
+    return sum(confidence_list) / len(confidence_list)
+
+
 def interactive(model):
     while True:
         x = input(">")
         if x == "stop" or x == "exit":
             break
         print(predict(model, x))
-
 
 #######################################################################################################################
 
